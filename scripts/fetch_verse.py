@@ -1,4 +1,3 @@
-import os
 import datetime
 import requests
 
@@ -67,10 +66,23 @@ def get_verse_of_the_day():
     print(f"Content: {passage_data.get('content')}")
     print("========================================")
 
-def store_in_data():
+    return [datetime.datetime.today(),passage_id, passage_data.get('content')]
+
+def store_in_data(verse_data):
     # Store the verse of the day in the data json
-    pass
+    import json
+
+    data = {
+        "date": verse_data[0].strftime("%Y-%m-%d"),
+        "reference": verse_data[1],
+        "content": verse_data[2]
+    }
+
+    json_file_path = "data/today.json"
+
+    with open(json_file_path, "w") as json_file:
+        json.dump(data, json_file, indent=4)
 
 if __name__ == "__main__":
-    get_verse_of_the_day()
-    store_in_data()
+    verse_data = get_verse_of_the_day()
+    store_in_data(verse_data)
