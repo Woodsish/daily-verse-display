@@ -1,12 +1,11 @@
+import os
 import datetime
 import requests
+import json
 
 # Get secretes from environment variables
-# YVP_APP_KEY = os.environ.get("YVP_APP_KEY")
-# BIBLE_ID = os.environ.get("BIBLE_ID", "3034")  # Default to ESV if not set
-
-YVP_APP_KEY = "dJUUAAmVTs87ARaq6rVKZ8B77w3Uj16aFEpFAdpLGEMU2Dpy"
-BIBLE_ID = "3034"
+YVP_APP_KEY = os.environ.get("YVP_APP_KEY")
+BIBLE_ID = os.environ.get("BIBLE_ID", "3034")  # Default to BSB if not set
 
 if not YVP_APP_KEY:
     raise ValueError("Missing YVP_APP_KEY environment variable!")
@@ -30,7 +29,6 @@ def get_verse_of_the_day():
     except requests.RequestException as e:
         print(f"Network error trying to resolve host: {e}")
         return
-
     print(f"VOTD Status Code: {response.status_code}")
 
     if response.status_code != 200:
@@ -41,48 +39,46 @@ def get_verse_of_the_day():
     passage_id = data.get("passage_id")
     print(f"Passage ID: {passage_id}")
 
+    # Build the specific passage URL
     passage_url = f"https://api.youversion.com/v1/bibles/{BIBLE_ID}/passages/{passage_id}"
     params ={"format": "text"}
     print(f"Requesting passage URL: {passage_url}")
 
+    # Fetch the scripture for the verse of the day
     try:
         text_response = requests.get(passage_url, headers=headers, params=params)
     except requests.RequestException as e:
         print(f"Network error trying to reach passages endpoint: {e}")
         return
-
     print(f"Scripture Text Status Code: {text_response.status_code}")
 
     if text_response.status_code != 200:
         print(f"Failed to fetch scripture text: {text_response.text}")
         return
-
     passage_data = text_response.json()
 
-    print("\n========================================")
-    print(f"YOUVERSION VERSE OF THE DAY (ESV) - {datetime.datetime.today()}")
-    print("========================================")
-    print(f"Reference: {passage_id}")
-    print(f"Content: {passage_data.get('content')}")
-    print("========================================")
-
-    return [datetime.datetime.today(),passage_id, passage_data.get('content')]
-
-def store_in_data(verse_data):
-    # Store the verse of the day in the data json
-    import json
-
-    data = {
-        "date": verse_data[0].strftime("%Y-%m-%d"),
-        "reference": verse_data[1],
-        "content": verse_data[2]
+    # Format the verse of the day data
+    votd_data = {
+        "date": datetime.datetime.today().strftime("%Y-%m-%d"),
+        "reference": passage_id,
+        "version": "BSB",
+        "content": passage_data.get('content'),
+        "image": "today.jpg",
     }
 
-    json_file_path = "data/today.json"
+    # Test Outputs
+    print("\n========================================")
+    print(f"YOUVERSION VERSE OF THE DAY (BSB) - {votd_data['date']}")
+    print("========================================")
+    print(f"Reference: {votd_data['reference']}")
+    print(f"Version: {votd_data['version']}")
+    print(f"Content: {votd_data['content']}")
+    print("========================================")
 
+    # Save the verse of the day to the data file
+    json_file_path = "data/today.json"
     with open(json_file_path, "w") as json_file:
-        json.dump(data, json_file, indent=4)
+        json.dump(votd_data, json_file, indent=4)
 
 if __name__ == "__main__":
-    verse_data = get_verse_of_the_day()
-    store_in_data(verse_data)
+    get_verse_of_the_day()
