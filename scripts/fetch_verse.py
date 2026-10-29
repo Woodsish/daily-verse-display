@@ -1,5 +1,6 @@
 import os
 from datetime import datetime
+from zoneinfo import ZoneInfo
 import requests
 import json
 from bs4 import BeautifulSoup
@@ -18,8 +19,8 @@ headers = {
 }
 
 # Calculate the day of the year
-day_of_year = datetime.now().astimezone().timetuple().tm_yday
-date_string = datetime.now().astimezone().strftime("%Y-%m-%d")
+day_of_year = datetime.now(ZoneInfo("America/Los_Angeles")).timetuple().tm_yday
+date_string = datetime.now(ZoneInfo("America/Los_Angeles")).strftime("%Y-%m-%d")
 
 def get_verse_of_the_day():
     # Get the passage ID for today from YouVersion
