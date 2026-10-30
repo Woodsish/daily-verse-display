@@ -6,8 +6,7 @@ import json
 from bs4 import BeautifulSoup
 
 # Get secretes from environment variables
-# YVP_APP_KEY = os.environ.get("YVP_APP_KEY")
-YVP_APP_KEY = "dJUUAAmVTs87ARaq6rVKZ8B77w3Uj16aFEpFAdpLGEMU2Dpy"
+YVP_APP_KEY = os.environ.get("YVP_APP_KEY")
 BIBLE_ID = os.environ.get("BIBLE_ID", "3034")  # Default to BSB if not set
 
 if not YVP_APP_KEY:
