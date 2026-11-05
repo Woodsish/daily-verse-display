@@ -77,12 +77,10 @@ def get_verse_of_the_day():
     print(f"Version: {votd_data['version']}")
     print(f"Text: {votd_data['text']}")
     print("========================================")
-
-    # Save the verse of the day to the data file
-    json_file_path = "data/today.json"
-    with open(json_file_path, "w") as json_file:
-        json.dump(votd_data, json_file, indent=4)
-
+    
+    # Output the verse of the day data
+    return votd_data
+    
 # Note: the image of the day has the text embedded in the image.
 def get_image_of_the_day():
     votd_url = "https://www.bible.com/verse-of-the-day"
@@ -107,7 +105,7 @@ def get_image_of_the_day():
             soup.find("meta", attrs={"name": "twitter:image"})
         )
 
-        # Test image hash
+        # Print image tag
         print("image_tag:", image_tag)
 
         if image_tag and image_tag.get("content"):
@@ -117,12 +115,17 @@ def get_image_of_the_day():
             # Fetch the image
             img_response = requests.get(image_url, headers=headers)
             img_response.raise_for_status()
-
+            
+            # Save image
             image_file_path = "data/today.jpg"
             with open(image_file_path, "wb") as img_file:
                 img_file.write(img_response.content)
             print(f"Saved image to: {image_file_path}")
-            print(len(img_response.content), hashlib.md5(img_response.content).hexdigest())
+            
+            # Save image hash
+            img_hash = hashlib.md5(img_response.content).hexdigest()[:8]
+            print(len(img_response.content), img_hash)
+            return img_hash
         else:
             print("Could not parse dynamic graphic element container from metadata tags.")
     
@@ -130,5 +133,10 @@ def get_image_of_the_day():
         print(f"Error occured while tracking the image: {e}")
 
 if __name__ == "__main__":
-    get_verse_of_the_day()
-    get_image_of_the_day()
+    votd_data = get_verse_of_the_day()
+    img_hash = get_image_of_the_day()
+    
+    if votd_data:
+        votd_data["image_hash"] = img_hash or ""
+        with open("data/today.json", "w") as json_file:
+            json.dump(votd_data, json_file, indent=4)
