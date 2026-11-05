@@ -4,6 +4,7 @@ from zoneinfo import ZoneInfo
 import requests
 import json
 from bs4 import BeautifulSoup
+import hashlib
 
 # Get secretes from environment variables
 YVP_APP_KEY = os.environ.get("YVP_APP_KEY")
