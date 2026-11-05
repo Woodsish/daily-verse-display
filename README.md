@@ -1,0 +1,1 @@
+Verse of the day display based on the YouVersion/Bible.com berse of the day
