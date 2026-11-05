@@ -101,15 +101,14 @@ def get_image_of_the_day():
         # Parse the HTML content
         soup = BeautifulSoup(response.content, "html.parser")
         
-        # Test image hash
-        print(image_tag)
-        print(len(img_response.content), hashlib.md5(img_response.content).hexdigest())
-        
         # Locate the image link embedded in the page metadata
         image_tag = (
             soup.find("meta", attrs={"property": "og:image"}) or 
             soup.find("meta", attrs={"name": "twitter:image"})
         )
+
+        # Test image hash
+        print("image_tag:", image_tag)
 
         if image_tag and image_tag.get("content"):
             image_url = image_tag["content"]
@@ -123,6 +122,7 @@ def get_image_of_the_day():
             with open(image_file_path, "wb") as img_file:
                 img_file.write(img_response.content)
             print(f"Saved image to: {image_file_path}")
+            print(len(img_response.content), hashlib.md5(img_response.content).hexdigest())
         else:
             print("Could not parse dynamic graphic element container from metadata tags.")
     
