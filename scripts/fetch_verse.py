@@ -99,7 +99,11 @@ def get_image_of_the_day():
 
         # Parse the HTML content
         soup = BeautifulSoup(response.content, "html.parser")
-
+        
+        # Test image hash
+        print(image_tag)
+        print(len(img_response.content), hashlib.md5(img_response.content).hexdigest())
+        
         # Locate the image link embedded in the page metadata
         image_tag = (
             soup.find("meta", attrs={"property": "og:image"}) or 
