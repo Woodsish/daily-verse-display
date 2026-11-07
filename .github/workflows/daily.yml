@@ -2,7 +2,6 @@ name: Daily Verse
 on:
     schedule:
         - cron: "14 11 * * *" # Runs at 11:00 AM UTC (4:00 AM PST)
-        - cron: "14 15 * * *" # Second run to catch late change
     workflow_dispatch: # Allows manual triggering
 permissions:
     contents: write
