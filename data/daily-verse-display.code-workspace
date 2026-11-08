@@ -1,0 +1,12 @@
+{
+	"folders": [
+		{
+			"path": ".."
+		},
+		{
+			"name": "Daily Bible Verse Displau",
+			"path": "../firmware/Daily Bible Verse Displau"
+		}
+	],
+	"settings": {}
+}
