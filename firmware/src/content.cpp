@@ -8,8 +8,6 @@
 static String lastEtag;
 static const int MAX_IMG = 200 * 1024;
 
-bool displayShowJpeg(uint8_t* data, size_t len);
-
 bool contentRefresh() {
     WiFiClientSecure client;
     client.setInsecure();
