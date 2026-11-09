@@ -4,8 +4,8 @@
 			"path": ".."
 		},
 		{
-			"name": "Daily Bible Verse Displau",
-			"path": "../firmware/Daily Bible Verse Displau"
+			"name": "Daily Bible Verse Display",
+			"path": "../firmware/Daily Bible Verse Display"
 		}
 	],
 	"settings": {}
