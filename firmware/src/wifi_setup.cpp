@@ -4,6 +4,7 @@
 #include "wifi_setup.h"
 #include "settings.h"
 #include "tz_table.h"
+#include "display.h"
 
 static WiFiManager wm;
 static WiFiManagerParameter *pTz, *pWake, *pSleep;
@@ -43,5 +44,8 @@ void wifiSetup(bool forceReset) {
     WiFi.mode(WIFI_STA);
     String name = "VerseDisplay-" + WiFi.macAddress().substring(12);
     name.replace(":", "");
+    wm.setAPCallback([](WiFiManager* w) {
+        displayShowSetup(w->getConfigPortalSSID().c_str());
+    });
     if (!wm.autoConnect(name.c_str())) ESP.restart();
 }
