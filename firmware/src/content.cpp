@@ -14,17 +14,11 @@ bool contentRefresh() {
     HTTPClient http;
     const char* keys[] = {"ETag"};
     http.collectHeaders(keys, 1);
-    Serial.println(String(REPO_BASE) + "data/today.jpg");
     http.begin(client, String(REPO_BASE) + "data/today.jpg");
+    http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
     if (lastEtag.length()) http.addHeader("If-None-Match", lastEtag);
 
     int code = http.GET();
-
-    Serial.printf("HTTP code: %d\n", code);
-    if (code <= 0) Serial.println(http.errorToString(code));
-    String body = http.getString();
-    Serial.println(body.substring(0, 300));
-
     if (code == 304) { http.end(); return false; }
     if (code != 200) {
         Serial.printf("Image HTTP %d\n", code);
@@ -33,21 +27,36 @@ bool contentRefresh() {
     }
 
     int len = http.getSize();
-    if (len <= 0 || len > MAX_IMG) { Serial.printf("Bad size: %d\n", len); http.end(); return false; }
+    if (len <= 0 || len > MAX_IMG) {
+        Serial.printf("Image bad size: %d\n", len);
+        http.end();
+        return false;
+    }
+
     uint8_t* buf = (uint8_t*)malloc(len);
-    if (!buf) { http.end(); return false; }
+    if (!buf) {
+        Serial.println("Image malloc failed");
+        http.end();
+        return false;
+    }
 
     WiFiClient* stream = http.getStreamPtr();
     int got = 0;
     uint32_t start = millis();
     while (got < len && millis() - start < 20000) {
-        got += stream->readBytes(buf + got, len -got);
+        got += stream->readBytes(buf + got, len - got);
     }
 
-    bool ok = (got == len && buf[0] == 0xFF && buf[1] == 0xD8); // JPEG magic bytes
-    if (ok && displayShowJpeg(buf, len)) lastEtag = http.header("ETag");
-    else ok = false;
-    
+    bool ok = (got == len && got >= 2 && buf[0] == 0xFF && buf[1] == 0xD8); // JPEG magic bytes
+    if (!ok) {
+        Serial.printf("Image download incomplete or not a JPEG (%d of %d bytes)\n", got, len);
+    } else if (!displayShowJpeg(buf, len)) {
+        Serial.println("Image decode failed");
+        ok = false;
+    } else {
+        lastEtag = http.header("ETag");
+    }
+
     free(buf);
     http.end();
     return ok;
