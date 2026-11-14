@@ -48,7 +48,7 @@ void loop() {
     lastAwake = awake;
     if (awake) refreshAll();  // new day's image ready when it wakes
     displaySetOn(awake);
-  } else if (awake && millis() - lastRefresh > REFRESH_MS) {
+  } else if (awake && millis() - lastRefresh > interval) {
     refreshAll();
   }
   delay(1000);

@@ -14,10 +14,17 @@ bool contentRefresh() {
     HTTPClient http;
     const char* keys[] = {"ETag"};
     http.collectHeaders(keys, 1);
+    Serial.println(String(REPO_BASE) + "data/today.jpg");
     http.begin(client, String(REPO_BASE) + "data/today.jpg");
     if (lastEtag.length()) http.addHeader("If-None-Match", lastEtag);
 
     int code = http.GET();
+
+    Serial.printf("HTTP code: %d\n", code);
+    if (code <= 0) Serial.println(http.errorToString(code));
+    String body = http.getString();
+    Serial.println(body.substring(0, 300));
+
     if (code == 304) { http.end(); return false; }
     if (code != 200) {
         Serial.printf("Image HTTP %d\n", code);
@@ -26,7 +33,7 @@ bool contentRefresh() {
     }
 
     int len = http.getSize();
-    if (len <= 0 || len > MAX_IMG) { http.end(); return false; }
+    if (len <= 0 || len > MAX_IMG) { Serial.printf("Bad size: %d\n", len); http.end(); return false; }
     uint8_t* buf = (uint8_t*)malloc(len);
     if (!buf) { http.end(); return false; }
 
