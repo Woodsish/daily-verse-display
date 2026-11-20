@@ -7,7 +7,7 @@ from zoneinfo import ZoneInfo
 
 import requests
 from bs4 import BeautifulSoup
-from PIL import Image
+from PIL import Image, ImageFilter
 
 # Screen size (landscape, matches DISPLAY_ROTATION = 1 in display.cpp)
 SCREEN_W, SCREEN_H = 480, 320
@@ -69,18 +69,35 @@ def get_verse_of_the_day():
     }
 
 
-def convert_for_display(raw_bytes):
-    """Convert any image to a baseline RGB JPEG that fits the screen.
-    Scales to fit (no cropping, so embedded text stays intact) and
-    centers it on a black background."""
-    img = Image.open(io.BytesIO(raw_bytes)).convert("RGB")
+def convert_for_display(raw_bytes, blur_radius=20):
+    """Convert an image to a screen-sized JPEG with a blurred image background.
 
-    scale = min(SCREEN_W / img.width, SCREEN_H / img.height)
-    new_size = (round(img.width * scale), round(img.height * scale))
-    img = img.resize(new_size, Image.LANCZOS)
+    The background fills the screen while the original image scales to fit
+    without cropping, keeping any embedded text intact.
+    """
+    source = Image.open(io.BytesIO(raw_bytes)).convert("RGB")
 
-    canvas = Image.new("RGB", (SCREEN_W, SCREEN_H), (0, 0, 0))
-    canvas.paste(img, ((SCREEN_W - new_size[0]) // 2, (SCREEN_H - new_size[1]) // 2))
+    background_scale = max(SCREEN_W / source.width, SCREEN_H / source.height)
+    background_size = (
+        round(source.width * background_scale),
+        round(source.height * background_scale),
+    )
+    background = source.resize(background_size, Image.LANCZOS)
+    left = (background.width - SCREEN_W) // 2
+    top = (background.height - SCREEN_H) // 2
+    background = background.crop((left, top, left + SCREEN_W, top + SCREEN_H))
+    canvas = background.filter(ImageFilter.GaussianBlur(blur_radius))
+
+    foreground_scale = min(SCREEN_W / source.width, SCREEN_H / source.height)
+    foreground_size = (
+        round(source.width * foreground_scale),
+        round(source.height * foreground_scale),
+    )
+    foreground = source.resize(foreground_size, Image.LANCZOS)
+    canvas.paste(
+        foreground,
+        ((SCREEN_W - foreground_size[0]) // 2, (SCREEN_H - foreground_size[1]) // 2),
+    )
 
     out = io.BytesIO()
     canvas.save(out, "JPEG", quality=85, progressive=False, optimize=False)
