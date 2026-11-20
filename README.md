@@ -1,1 +1,1 @@
-Verse of the day display based on the YouVersion/Bible.com berse of the day
+Verse-of-the-day display using the YouVersion Platform API for daily verse text and verse art.

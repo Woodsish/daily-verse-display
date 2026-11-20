@@ -6,7 +6,6 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 
 import requests
-from bs4 import BeautifulSoup
 from PIL import Image, ImageFilter
 
 # Screen size (landscape, matches DISPLAY_ROTATION = 1 in display.cpp)
@@ -31,42 +30,45 @@ date_string = now.strftime("%Y-%m-%d")
 
 
 def get_verse_of_the_day():
-    # Get the passage ID for today from YouVersion
+    # Get the passage ID and English verse-art image ID for today.
     votd_url = f"https://api.youversion.com/v1/verse-of-the-days/{day_of_year}"
+    response = requests.get(
+        votd_url,
+        headers=headers,
+        params={"language_ranges[]": "en"},
+        timeout=30,
+    )
+    response.raise_for_status()
 
-    try:
-        response = requests.get(votd_url, headers=headers)
-    except requests.RequestException as e:
-        print(f"Network error fetching VOTD mapping: {e}")
-        return
-
-    if response.status_code != 200:
-        print(f"Failed to fetch VOTD mapping ({response.status_code}): {response.text}")
-        return
-
-    passage_id = response.json().get("passage_id")
+    verse_data = response.json()
+    passage_id = verse_data.get("passage_id")
+    image_id = verse_data.get("image_id")
+    if not isinstance(passage_id, str) or not passage_id:
+        raise ValueError("YouVersion did not return a passage ID for today's verse.")
+    if not isinstance(image_id, str) or not image_id:
+        raise ValueError("YouVersion did not return English verse art for today's verse.")
 
     # Fetch the scripture text for that passage
     passage_url = f"https://api.youversion.com/v1/bibles/{BIBLE_ID}/passages/{passage_id}"
-    try:
-        text_response = requests.get(passage_url, headers=headers, params={"format": "text"})
-    except requests.RequestException as e:
-        print(f"Network error fetching passage: {e}")
-        return
-
-    if text_response.status_code != 200:
-        print(f"Failed to fetch scripture text ({text_response.status_code}): {text_response.text}")
-        return
-
+    text_response = requests.get(
+        passage_url,
+        headers=headers,
+        params={"format": "text"},
+        timeout=30,
+    )
+    text_response.raise_for_status()
     passage_data = text_response.json()
 
-    return {
-        "date": date_string,
-        "reference": passage_id,
-        "version": "BSB",
-        "text": passage_data.get("content"),
-        "image": "today.jpg",
-    }
+    return (
+        {
+            "date": date_string,
+            "reference": passage_id,
+            "version": "BSB",
+            "text": passage_data.get("content"),
+            "image": "today.jpg",
+        },
+        image_id,
+    )
 
 
 def convert_for_display(raw_bytes, blur_radius=20):
@@ -104,52 +106,30 @@ def convert_for_display(raw_bytes, blur_radius=20):
     return out.getvalue()
 
 
-# Note: the image of the day has the text embedded in the image.
-def get_image_of_the_day():
-    page_url = "https://www.bible.com/verse-of-the-day"
+def get_image_of_the_day(image_id):
+    metadata_url = f"https://api.youversion.com/v1/images/{image_id}"
+    metadata_response = requests.get(metadata_url, headers=headers, timeout=30)
+    metadata_response.raise_for_status()
 
-    web_headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-        "Accept-Language": "en-US,en;q=0.5"
-    }
+    image_url = metadata_response.json().get("image_url")
+    if not isinstance(image_url, str) or not image_url.startswith("https://"):
+        raise ValueError("YouVersion did not return a valid verse-art image URL.")
 
-    try:
-        response = requests.get(page_url, headers=web_headers)
-        response.raise_for_status()
+    image_response = requests.get(image_url, timeout=30)
+    image_response.raise_for_status()
+    image_bytes = image_response.content
 
-        # Find the image link in the page metadata
-        soup = BeautifulSoup(response.content, "html.parser")
-        image_tag = (
-            soup.find("meta", attrs={"property": "og:image"}) or
-            soup.find("meta", attrs={"name": "twitter:image"})
-        )
+    # Convert to a baseline, screen-sized JPEG with the verse text preserved.
+    os.makedirs("data", exist_ok=True)
+    with open("data/today.jpg", "wb") as img_file:
+        img_file.write(convert_for_display(image_bytes))
 
-        if not (image_tag and image_tag.get("content")):
-            print("Could not find the image URL in the page metadata.")
-            return
-
-        img_response = requests.get(image_tag["content"], headers=web_headers)
-        img_response.raise_for_status()
-
-        # Convert to a baseline, screen-sized JPEG and save it
-        os.makedirs("data", exist_ok=True)
-        with open("data/today.jpg", "wb") as img_file:
-            img_file.write(convert_for_display(img_response.content))
-
-        # Hash of the original download, used for change detection
-        return hashlib.md5(img_response.content).hexdigest()[:8]
-
-    except Exception as e:
-        print(f"Error fetching the image of the day: {e}")
+    return hashlib.md5(image_bytes).hexdigest()[:8]
 
 
 if __name__ == "__main__":
-    votd_data = get_verse_of_the_day()
-    img_hash = get_image_of_the_day()
-
-    if votd_data:
-        votd_data["image_hash"] = img_hash or ""
-        os.makedirs("data", exist_ok=True)
-        with open("data/today.json", "w") as json_file:
-            json.dump(votd_data, json_file, indent=4)
+    votd_data, image_id = get_verse_of_the_day()
+    votd_data["image_hash"] = get_image_of_the_day(image_id)
+    os.makedirs("data", exist_ok=True)
+    with open("data/today.json", "w") as json_file:
+        json.dump(votd_data, json_file, indent=4)
