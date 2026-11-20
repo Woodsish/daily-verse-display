@@ -25,6 +25,6 @@ bool isAwakeNow() {
     if (!getLocalTime(&t, 0)) return true; // no clock yet: stay on
     int now = t.tm_hour * 60 + t.tm_min;
     if (wakeMin == sleepMin) return true; //same time: always on
-    if (wakeMin < sleepMin) return now >- wakeMin && now < sleepMin;
+    if (wakeMin < sleepMin) return now >= wakeMin && now < sleepMin;
     return now >= wakeMin || now < sleepMin; // window crosses midnight
 }
