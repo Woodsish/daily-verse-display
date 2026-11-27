@@ -1,7 +1,7 @@
 name: Daily Verse
 on:
     schedule:
-        - cron: "14 11 * * *" # Runs at 11:00 AM UTC (4:00 AM PST)
+        - cron: "14 11 * * *" # Scheduled at 11:14 AM UTC (3/4:14 AM Pacifc). Also triggered externally by cron-job
     workflow_dispatch: # Allows manual triggering
 permissions:
     contents: write
